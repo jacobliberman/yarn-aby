@@ -1,0 +1,11 @@
+{
+  "name": "yarn-aby",
+  "private": true,
+  "workspaces": ["api", "web", "shared"],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=api",
+    "dev:web": "npm run dev --workspace=web",
+    "build": "npm run build --workspace=api && npm run build --workspace=web",
+    "test": "npm test --workspace=api"
+  }
+}
