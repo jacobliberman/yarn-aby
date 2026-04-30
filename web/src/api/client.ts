@@ -8,11 +8,14 @@ export function apiUrl(path: string): string {
 export async function apiFetch(
   path: string,
   init?: RequestInit,
+  getToken?: () => Promise<string | null>,
 ): Promise<Response> {
-  const key = import.meta.env.VITE_API_KEY;
   const headers = new Headers(init?.headers);
-  if (key && !headers.has("x-api-key")) {
-    headers.set("x-api-key", key);
+  if (getToken) {
+    const token = await getToken();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
   }
   return fetch(apiUrl(path), { ...init, headers });
 }

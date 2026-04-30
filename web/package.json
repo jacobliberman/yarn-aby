@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.61.6",
     "@yarn-aby/shared": "*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

@@ -10,6 +10,7 @@ import {
 
 export const yarn = pgTable('yarn', {
   id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(),
   brand: text('brand').notNull(),
   colorway: text('colorway').notNull(),
   weight: text('weight').notNull(),
@@ -25,6 +26,7 @@ export const yarn = pgTable('yarn', {
 
 export const patterns = pgTable('patterns', {
   id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(),
   title: text('title').notNull(),
   designer: text('designer'),
   craftType: text('craft_type').notNull(),
@@ -40,6 +42,7 @@ export const patterns = pgTable('patterns', {
 
 export const projects = pgTable('projects', {
   id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(),
   patternId: integer('pattern_id').references(() => patterns.id),
   title: text('title').notNull(),
   status: text('status').notNull(),

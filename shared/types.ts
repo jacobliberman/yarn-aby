@@ -6,6 +6,7 @@ export type ProjectStatus = 'wip' | 'finished' | 'frogged';
 
 export interface Yarn {
   id: number;
+  userId: string;
   brand: string;
   colorway: string;
   weight: string;
@@ -21,6 +22,7 @@ export interface Yarn {
 
 export interface Pattern {
   id: number;
+  userId: string;
   title: string;
   designer: string | null;
   craftType: CraftType;
@@ -36,6 +38,7 @@ export interface Pattern {
 
 export interface Project {
   id: number;
+  userId: string;
   patternId: number | null;
   title: string;
   status: ProjectStatus;

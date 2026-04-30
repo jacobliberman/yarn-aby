@@ -1,0 +1,114 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev:api",
+      "type": "shell",
+      "command": "npm run dev:api",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dev-api",
+        "focus": false
+      },
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\S",
+          "endsPattern": "listening at|Server listening"
+        }
+      },
+      "detail": "Fastify API with tsx watch (needs DATABASE_URL + CLERK_SECRET_KEY in .env)"
+    },
+    {
+      "label": "dev:web",
+      "type": "shell",
+      "command": "npm run dev:web",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dev-web",
+        "focus": false
+      },
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\S",
+          "endsPattern": "Local:"
+        }
+      },
+      "detail": "Vite dev server (needs VITE_CLERK_PUBLISHABLE_KEY for Clerk UI)"
+    },
+    {
+      "label": "dev: full stack (api + web)",
+      "dependsOn": ["dev:api", "dev:web"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "detail": "Runs API and web together in parallel terminals"
+    },
+    {
+      "label": "test (api)",
+      "type": "shell",
+      "command": "npm test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "build (api + web)",
+      "type": "shell",
+      "command": "npm run build",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "db:migrate (api)",
+      "type": "shell",
+      "command": "npm run db:migrate --workspace=api",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
