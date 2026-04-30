@@ -8,6 +8,13 @@
       "when": 1777397998747,
       "tag": "0000_clear_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777475853345,
+      "tag": "0001_colorful_mauler",
+      "breakpoints": true
     }
   ]
 }
