@@ -17,14 +17,16 @@
 
 ## Tech Stack
 
-| Layer | Choice | Reason |
-|---|---|---|
-| Backend | Node.js + Fastify | Modern, fast, great TypeScript support |
-| Database | PostgreSQL via [Neon](https://neon.tech) | Free serverless Postgres, no infra |
-| ORM | Drizzle ORM | Lightweight, type-safe, schema-as-code |
-| Frontend | React + Vite | Fast dev server, simple build output |
-| Deployment | [Render](https://render.com) | Free tier for web service + static site |
-| CI/CD | GitHub Actions | Push to main → test → deploy |
+
+| Layer      | Choice                                   | Reason                                  |
+| ---------- | ---------------------------------------- | --------------------------------------- |
+| Backend    | Node.js + Fastify                        | Modern, fast, great TypeScript support  |
+| Database   | PostgreSQL via [Neon](https://neon.tech) | Free serverless Postgres, no infra      |
+| ORM        | Drizzle ORM                              | Lightweight, type-safe, schema-as-code  |
+| Frontend   | React + Vite                             | Fast dev server, simple build output    |
+| Deployment | [Render](https://render.com)             | Free tier for web service + static site |
+| CI/CD      | GitHub Actions                           | Push to main → test → deploy            |
+
 
 ---
 
@@ -44,7 +46,7 @@ stitch-and-stock/
 │   │   │   ├── migrations/     # Auto-generated migration files
 │   │   │   └── client.ts       # DB connection singleton
 │   │   └── middleware/
-│   │       └── auth.ts         # Simple API key check
+│   │       └── auth.ts         # Clerk Bearer JWT verification
 │   ├── package.json
 │   └── tsconfig.json
 │
@@ -78,6 +80,7 @@ stitch-and-stock/
 ## Database Schema (Drizzle)
 
 ### `yarn` table
+
 ```ts
 export const yarn = pgTable('yarn', {
   id:        serial('id').primaryKey(),
@@ -96,6 +99,7 @@ export const yarn = pgTable('yarn', {
 ```
 
 ### `patterns` table
+
 ```ts
 export const patterns = pgTable('patterns', {
   id:           serial('id').primaryKey(),
@@ -114,6 +118,7 @@ export const patterns = pgTable('patterns', {
 ```
 
 ### `projects` table
+
 ```ts
 export const projects = pgTable('projects', {
   id:          serial('id').primaryKey(),
@@ -129,6 +134,7 @@ export const projects = pgTable('projects', {
 ```
 
 ### `project_yarn` join table
+
 ```ts
 // Links a project to one or more yarns with quantity used
 export const projectYarn = pgTable('project_yarn', {
@@ -144,36 +150,48 @@ export const projectYarn = pgTable('project_yarn', {
 ## API Routes
 
 ### Yarn
-| Method | Path | Description |
-|---|---|---|
-| GET | `/yarn` | List all yarn (supports `?weight=`, `?tag=`) |
-| GET | `/yarn/:id` | Get single yarn entry |
-| POST | `/yarn` | Add new yarn |
-| PATCH | `/yarn/:id` | Update yarn (e.g. adjust quantity) |
-| DELETE | `/yarn/:id` | Remove yarn |
+
+
+| Method | Path        | Description                                  |
+| ------ | ----------- | -------------------------------------------- |
+| GET    | `/yarn`     | List all yarn (supports `?weight=`, `?tag=`) |
+| GET    | `/yarn/:id` | Get single yarn entry                        |
+| POST   | `/yarn`     | Add new yarn                                 |
+| PATCH  | `/yarn/:id` | Update yarn (e.g. adjust quantity)           |
+| DELETE | `/yarn/:id` | Remove yarn                                  |
+
 
 ### Patterns
-| Method | Path | Description |
-|---|---|---|
-| GET | `/patterns` | List all patterns (supports `?craft=`, `?tag=`, `?q=` search) |
-| GET | `/patterns/:id` | Get single pattern |
-| POST | `/patterns` | Add new pattern |
-| PATCH | `/patterns/:id` | Update pattern |
-| DELETE | `/patterns/:id` | Remove pattern |
+
+
+| Method | Path            | Description                                                   |
+| ------ | --------------- | ------------------------------------------------------------- |
+| GET    | `/patterns`     | List all patterns (supports `?craft=`, `?tag=`, `?q=` search) |
+| GET    | `/patterns/:id` | Get single pattern                                            |
+| POST   | `/patterns`     | Add new pattern                                               |
+| PATCH  | `/patterns/:id` | Update pattern                                                |
+| DELETE | `/patterns/:id` | Remove pattern                                                |
+
 
 ### Projects
-| Method | Path | Description |
-|---|---|---|
-| GET | `/projects` | List all projects (supports `?status=wip`) |
-| GET | `/projects/:id` | Get project with linked pattern + yarn |
-| POST | `/projects` | Create project |
-| PATCH | `/projects/:id` | Update status, notes, dates |
-| DELETE | `/projects/:id` | Delete project |
+
+
+| Method | Path            | Description                                |
+| ------ | --------------- | ------------------------------------------ |
+| GET    | `/projects`     | List all projects (supports `?status=wip`) |
+| GET    | `/projects/:id` | Get project with linked pattern + yarn     |
+| POST   | `/projects`     | Create project                             |
+| PATCH  | `/projects/:id` | Update status, notes, dates                |
+| DELETE | `/projects/:id` | Delete project                             |
+
 
 ### Utility
-| Method | Path | Description |
-|---|---|---|
-| GET | `/patterns/:id/yardage-check` | Compare pattern yardage need vs. inventory on hand |
+
+
+| Method | Path                          | Description                                        |
+| ------ | ----------------------------- | -------------------------------------------------- |
+| GET    | `/patterns/:id/yardage-check` | Compare pattern yardage need vs. inventory on hand |
+
 
 > The `/yardage-check` endpoint is the most architecturally interesting route — it joins pattern requirements against current yarn inventory to tell you if you have enough to cast on.
 
@@ -191,6 +209,7 @@ sufficient = yardage_available >= yardage_needed
 ```
 
 This is a non-trivial query because:
+
 - Yarn can be split across multiple skeins of different colorways
 - Projects consume yarn from inventory (reducing available quantity)
 - A user might want to use multiple yarns for one project
@@ -201,94 +220,40 @@ The `/yardage-check` route should account for yarn currently committed to active
 
 ## Auth
 
-Personal use only — no user accounts needed. Protect the API with a single env-var API key:
+The API uses **[Clerk](https://clerk.com)** session JWTs: clients send `Authorization: Bearer <token>`. The Fastify hook in `api/src/middleware/auth.ts` verifies the token with `@clerk/backend` and sets `request.userId` to the Clerk `sub` claim. Every row in `yarn`, `patterns`, and `projects` stores that same `user_id` so queries stay scoped per user.
 
-```ts
-// middleware/auth.ts
-fastify.addHook('onRequest', async (req, reply) => {
-  const key = req.headers['x-api-key'];
-  if (key !== process.env.API_KEY) {
-    reply.code(401).send({ error: 'Unauthorized' });
-  }
-});
-```
-
-Set `API_KEY` as an environment variable in Render's dashboard.
+The React app uses `@clerk/clerk-react` and `useAuthorizedFetch` to attach the session token to API calls.
 
 ---
 
 ## Environment Variables
 
-```bash
-# .env.example — commit this file
-DATABASE_URL=postgresql://user:password@host/dbname   # from Neon dashboard
-API_KEY=your-secret-key-here
-PORT=3000
-```
-
-```
-# .env — never commit this
-DATABASE_URL=postgresql://...
-API_KEY=abc123
-```
+See the committed template [`.env.example`](.env.example) for `DATABASE_URL`, `CLERK_SECRET_KEY`, `PORT`, and Vite `VITE_*` variables (`VITE_CLERK_PUBLISHABLE_KEY`, `VITE_API_URL`).
 
 ---
 
 ## GitHub Actions CI/CD
 
-```yaml
-# .github/workflows/deploy.yml
-name: Test & Deploy
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  test-and-deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install API deps
-        run: npm ci
-        working-directory: api
-
-      - name: Run tests
-        run: npm test
-        working-directory: api
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Build frontend
-        run: npm ci && npm run build
-        working-directory: web
-
-      - name: Deploy to Render
-        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
-```
+Workflow: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). It runs at the **monorepo root** (`npm ci`, `npm test`, `npm run build`). For PRs and pushes, supply **Actions secrets** as needed: `DATABASE_URL` and `CLERK_SECRET_KEY` so route tests can run; optional `RENDER_DEPLOY_HOOK` triggers a deploy on `main` when set.
 
 ### Setup Steps
+
 1. Create a Render web service connected to your GitHub repo
 2. Copy the Render deploy hook URL from the service dashboard
-3. Add `RENDER_DEPLOY_HOOK` and `DATABASE_URL` as GitHub Actions secrets (`Settings → Secrets → Actions`)
-4. Render will auto-build on deploy hook trigger
+3. Add `RENDER_DEPLOY_HOOK`, `DATABASE_URL`, and `CLERK_SECRET_KEY` as GitHub Actions secrets where applicable
+4. Render will rebuild when the hook is called (if configured)
 
 ---
 
 ## Free Tier Services
 
-| Service | What to do |
-|---|---|
-| [Neon](https://neon.tech) | Sign up → create project → copy `DATABASE_URL` |
+
+| Service                      | What to do                                                        |
+| ---------------------------- | ----------------------------------------------------------------- |
+| [Neon](https://neon.tech)    | Sign up → create project → copy `DATABASE_URL`                    |
 | [Render](https://render.com) | Create Web Service (API) + Static Site (frontend), both free tier |
-| GitHub Actions | Free for public repos; 2,000 min/month for private |
+| GitHub Actions               | Free for public repos; 2,000 min/month for private                |
+
 
 ---
 
@@ -297,22 +262,27 @@ jobs:
 Document these decisions in your README to make this portfolio-worthy:
 
 ### ADR-001: Monorepo with shared types
+
 **Decision:** Keep API and frontend in one repo with a `/shared` package for TypeScript types.
 **Rationale:** Eliminates type drift between frontend API calls and backend responses. Shared types are the single source of truth for `Yarn`, `Pattern`, and `Project` shapes.
 
 ### ADR-002: Drizzle ORM over Prisma
+
 **Decision:** Use Drizzle instead of Prisma.
 **Rationale:** Schema defined as TypeScript, not a separate DSL. Migrations are plain SQL files you can read and reason about. Lighter runtime footprint, better fit for a lean personal project.
 
 ### ADR-003: Neon serverless Postgres over SQLite
+
 **Decision:** Use Neon (hosted Postgres) instead of a local SQLite file.
 **Rationale:** Keeps the deployment stateless — the Render service holds no data, making deploys and rollbacks safe. Also means the local dev environment and production use the same database engine.
 
-### ADR-004: API key auth over session-based auth
-**Decision:** Single shared API key in env vars, checked on every request.
-**Rationale:** Personal use only. No user accounts, no JWTs, no refresh tokens. The key lives in the frontend `.env` and is rotatable without schema changes.
+### ADR-004: Clerk session auth with per-row tenancy
+
+**Decision:** Use Clerk for sign-in and verify Bearer JWTs on the API; store `user_id` (Clerk user id) on tenant tables and scope every query with it.
+**Rationale:** Real multi-tenant isolation for a personal app that may grow beyond a single device, without building custom auth. Secrets stay server-side; the browser only holds short-lived session tokens.
 
 ### ADR-005: Yardage check as a server-side query
+
 **Decision:** Compute yardage sufficiency on the backend, not the frontend.
 **Rationale:** Requires joining pattern requirements, yarn inventory, and active project consumption in a single consistent read. Doing this on the frontend would require loading all related data into memory and keeping it in sync.
 
@@ -358,3 +328,4 @@ Start here, in this order:
 9. **React frontend** — pages for each entity, typed fetch client
 10. **GitHub Actions workflow** — `.github/workflows/deploy.yml`
 11. **Render + Neon setup** — connect services, set env vars, verify deploy
+

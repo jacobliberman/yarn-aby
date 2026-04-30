@@ -55,3 +55,25 @@ export interface ProjectYarn {
   yarnId: number | null;
   skeinsUsed: string | null;
 }
+
+export interface ProjectDetailResponse {
+  project: Project;
+  pattern: Pattern | null;
+  yarnLinks: ProjectYarnWithYarn[];
+}
+
+export interface ProjectYarnWithYarn extends ProjectYarn {
+  yarn: Yarn | null;
+}
+
+/** Response from `GET /patterns/:id/yardage-check` */
+export interface YardageCheckResult {
+  patternId: number;
+  needed: number | null;
+  grossYardsInInventory: number;
+  yardsCommittedToWip: number;
+  availableYards: number;
+  sufficient: boolean | null;
+  /** true when some inventory rows have null `yardage` (excluded from sums) */
+  hasYarnWithUnknownYardage: boolean;
+}
